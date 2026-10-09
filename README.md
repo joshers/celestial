@@ -1,4 +1,4 @@
-# Night Shift
+# Celestial
 
 A tiny mobile-first web app that shows, at a glance, which planets (and the Moon) will be at least **30° above the horizon** tonight, and when.
 
