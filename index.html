@@ -29,6 +29,8 @@
     background: var(--card); border: 1px solid var(--line);
     border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
   }
+  .card.below { background: rgba(21, 27, 49, .6); }
+  .card.below > * { opacity: .45; filter: grayscale(.8); }
   .card { display: flex; gap: 14px; align-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .card .info { flex: 1; min-width: 0; }
   .card svg { width: 48px; height: 48px; flex: none; }
@@ -290,7 +292,7 @@ function render() {
     const body = phase + (up.length
       ? up.map(([s, e]) => `<div class="range">${fmtRange(s, e)}</div>`).join('')
       : `<div class="none">Not above ${MIN_ALT}° tonight</div>`);
-    return { first: up.length ? up[0][0] : Infinity, html: `<div class="card">${planetIcon(p)}<div class="info"><div class="row"><span class="name">${p}</span>
+    return { first: up.length ? up[0][0] : Infinity, html: `<div class="card${up.length ? '' : ' below'}">${planetIcon(p)}<div class="info"><div class="row"><span class="name">${p}</span>
       <span class="peak">max ${Math.floor(peak)}°</span></div>${body}</div></div>` };
   });
   cards.sort((a, b) => a.first - b.first);
