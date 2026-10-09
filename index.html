@@ -39,6 +39,16 @@
   .phase { color: var(--muted); font-size: .85rem; }
   .none { color: var(--muted); margin-top: 6px; }
   .msg { color: var(--muted); text-align: center; padding: 24px 0; }
+  .link { background: none; border: 0; color: var(--accent); font: inherit; padding: 0 0 0 6px; cursor: pointer; }
+  dialog {
+    background: var(--card); color: var(--text); border: 1px solid var(--line);
+    border-radius: 16px; padding: 18px 16px; width: min(92vw, 420px);
+  }
+  dialog::backdrop { background: rgba(5, 8, 18, .7); }
+  dialog h2 { font-size: 1.1rem; margin: 0 0 4px; }
+  dialog form { margin-top: 10px; }
+  #manual .cancel { display: none; }
+  dialog #manual .cancel { display: inline-block; }
   form .ghost { background: none; color: var(--accent); border: 1px solid var(--line); }
   form { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
   input {
@@ -54,7 +64,8 @@
 <body>
 <main>
   <h1>Night Shift</h1>
-  <div class="sub"><span id="loc">Locating…</span></div>
+  <div class="sub"><span id="loc">Locating…</span>
+    <button type="button" id="change" class="link" hidden>Change</button></div>
   <div class="daybar">
     <button id="prev" aria-label="Previous day">‹</button>
     <div class="date" id="date"></div>
@@ -62,13 +73,21 @@
   </div>
   <div class="sub" id="night"></div>
   <div id="out"><div class="msg">Waiting for location…</div></div>
-  <form id="manual">
+  <div id="manualSlot">
+  <form id="manual" hidden>
     <input id="lat" inputmode="decimal" placeholder="Latitude">
     <input id="lon" inputmode="decimal" placeholder="Longitude">
     <button>Use</button>
     <button type="button" id="gps" class="ghost">Use my location</button>
+    <button type="button" id="cancel" class="ghost cancel">Cancel</button>
   </form>
+  </div>
 </main>
+
+<dialog id="locDialog">
+  <h2>Change location</h2>
+  <div class="sub">Latitude and longitude in degrees.</div>
+</dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script>
@@ -219,7 +238,34 @@ function save(v) {
   try { v ? localStorage.setItem(STORE_KEY, JSON.stringify(v)) : localStorage.removeItem(STORE_KEY); } catch {}
 }
 
+const $ = id => document.getElementById(id);
+let current = null;
+
+// The lat/long form lives at the bottom of the page only while no location is
+// set; afterwards it's moved into the "Change" dialog.
+function showFormInline() {
+  closeDialog();
+  $('manualSlot').append($('manual'));
+  $('manual').hidden = false;
+  $('change').hidden = true;
+}
+
+function openDialog() {
+  if (current) { $('lat').value = current.lat; $('lon').value = current.lon; }
+  $('locDialog').append($('manual'));
+  $('manual').hidden = false;
+  $('locDialog').showModal();
+}
+
+function closeDialog() {
+  if ($('locDialog').open) $('locDialog').close();
+}
+
 function setLocation(lat, lon, manual) {
+  current = { lat, lon };
+  closeDialog();
+  $('manual').hidden = true;
+  $('change').hidden = false;
   observer = new Astronomy.Observer(lat, lon, 0);
   document.getElementById('loc').textContent =
     `${lat.toFixed(3)}°, ${lon.toFixed(3)}°${manual ? ' (saved)' : ''} · local times`;
@@ -238,6 +284,7 @@ function askManual(reason) {
   document.getElementById('loc').textContent = reason;
   document.getElementById('out').innerHTML = '<div class="msg">Enter coordinates below.</div>';
   fillForm();
+  showFormInline();
 }
 
 function useGps() {
@@ -259,7 +306,9 @@ document.getElementById('manual').addEventListener('submit', e => {
     setLocation(lat, lon, true);
   }
 });
-document.getElementById('gps').onclick = () => { save(null); useGps(); };
+document.getElementById('gps').onclick = () => { save(null); closeDialog(); useGps(); };
+$('cancel').onclick = closeDialog;
+$('change').onclick = openDialog;
 document.getElementById('prev').onclick = () => { day = startOfDay(addMin(day, -12 * 60)); render(); };
 document.getElementById('next').onclick = () => { day = startOfDay(addMin(day, 36 * 60)); render(); };
 
