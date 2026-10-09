@@ -39,7 +39,7 @@
   .card.below > * { opacity: .45; filter: grayscale(.8); }
   .card { display: flex; gap: 14px; align-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .card .info { flex: 1; min-width: 0; }
-  .card svg { width: 48px; height: 48px; flex: none; }
+  .card svg, .card .icon { width: 48px; height: 48px; flex: none; object-fit: contain; }
   .row { display: flex; justify-content: space-between; align-items: baseline; }
   .name { font-weight: 600; font-size: 1.1rem; }
   .peak { color: var(--muted); font-size: .85rem; }
@@ -209,8 +209,14 @@ function moonIcon(angle) {
     <circle cx="24" cy="24" r="${r}" fill="#2a3150"/>${lit}</svg>`;
 }
 
+// Use a picture from planets/<name>.png when one exists; if it fails to load,
+// swap in the drawn icon. The Moon is always drawn so it can show its phase.
 function planetIcon(p) {
   if (p === 'Moon') return moonIcon(moonInfo(midNight()).angle);
+  return `<img class="icon" src="planets/${p.toLowerCase()}.png" alt="" onerror="this.outerHTML = drawnIcon('${p}')">`;
+}
+
+function drawnIcon(p) {
   const [base, hi, band] = LOOKS[p];
   const id = 'g' + p;
   const bands = band ? `<g clip-path="url(#c${p})" opacity=".55">
