@@ -6,7 +6,7 @@
 <title>Night Shift</title>
 <style>
   :root {
-    --bg: #0b1020; --card: #151b31; --text: #e8ecf8; --muted: #8e98b8;
+    --bg: #0b1020; --card: rgba(21, 27, 49, .9); --text: #e8ecf8; --muted: #8e98b8;
     --accent: #7aa2ff; --good: #6fdc9b; --line: #252d4a;
   }
   * { box-sizing: border-box; }
@@ -29,7 +29,7 @@
     background: var(--card); border: 1px solid var(--line);
     border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
   }
-  .card { display: flex; gap: 14px; align-items: center; }
+  .card { display: flex; gap: 14px; align-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .card .info { flex: 1; min-width: 0; }
   .card svg { width: 48px; height: 48px; flex: none; }
   .row { display: flex; justify-content: space-between; align-items: baseline; }
@@ -60,9 +60,47 @@
     background: var(--accent); color: #0b1020; border: 0; border-radius: 10px;
     padding: 10px 16px; font-weight: 600; font-size: 16px;
   }
+
+  /* ---------- Animated sky background ---------- */
+  #sky {
+    position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 50% at 15% 10%, rgba(88, 70, 160, .28), transparent 70%),
+      radial-gradient(ellipse 70% 45% at 90% 85%, rgba(40, 90, 160, .25), transparent 70%),
+      radial-gradient(ellipse 60% 40% at 70% 35%, rgba(150, 60, 120, .12), transparent 70%),
+      var(--bg);
+  }
+  .star {
+    position: absolute; border-radius: 50%; background: #fff;
+    animation: twinkle var(--d) ease-in-out var(--delay) infinite;
+  }
+  .star.big { box-shadow: 0 0 6px 1px rgba(200, 220, 255, .7); }
+  @keyframes twinkle {
+    0%, 100% { opacity: var(--lo); transform: scale(.8); }
+    50%      { opacity: 1;        transform: scale(1.1); }
+  }
+  .shoot {
+    position: absolute; width: 140px; height: 2px; opacity: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(200,220,255,.9) 70%, #fff);
+    border-radius: 2px; filter: drop-shadow(0 0 4px rgba(170,200,255,.9));
+    transform: rotate(var(--angle)) translateX(0);
+    animation: shoot var(--d) linear var(--delay) infinite;
+  }
+  /* Only the first ~7% of each cycle is visible, so streaks are occasional. */
+  @keyframes shoot {
+    0%   { opacity: 0; transform: rotate(var(--angle)) translateX(0); }
+    1%   { opacity: 1; }
+    6%   { opacity: 0; transform: rotate(var(--angle)) translateX(var(--dist)); }
+    100% { opacity: 0; transform: rotate(var(--angle)) translateX(var(--dist)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .star { animation: none; opacity: .7; }
+    .shoot { display: none; }
+  }
 </style>
 </head>
 <body>
+<div id="sky" aria-hidden="true"></div>
 <main>
   <h1>Night Shift</h1>
   <div class="sub"><span id="loc">Locating…</span>
@@ -92,6 +130,38 @@
 
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script>
+// Build the twinkling star field and a few shooting stars.
+(function buildSky() {
+  const sky = document.getElementById('sky');
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const count = Math.round(Math.min(300, window.innerWidth * window.innerHeight / 2800));
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('span');
+    const size = Math.random() < .08 ? rand(2, 3) : rand(.6, 1.6);
+    el.className = 'star' + (size > 2 ? ' big' : '');
+    el.style.cssText = `left:${rand(0, 100)}%;top:${rand(0, 100)}%;width:${size}px;height:${size}px;` +
+      `--d:${rand(2.5, 7).toFixed(2)}s;--delay:${rand(-7, 0).toFixed(2)}s;--lo:${rand(.25, .6).toFixed(2)}`;
+    frag.append(el);
+  }
+  for (let i = 0; i < 3; i++) {
+    const el = document.createElement('span');
+    el.className = 'shoot';
+    const place = () => {
+      el.style.left = rand(-10, 70) + '%';
+      el.style.top = rand(-5, 45) + '%';
+      el.style.setProperty('--angle', rand(20, 45).toFixed(0) + 'deg');
+    };
+    place();
+    el.style.setProperty('--dist', rand(500, 900).toFixed(0) + 'px');
+    el.style.setProperty('--d', rand(9, 18).toFixed(1) + 's');
+    el.style.setProperty('--delay', (2 + i * rand(3, 6)).toFixed(1) + 's');
+    el.addEventListener('animationiteration', place);   // new spot each pass
+    frag.append(el);
+  }
+  sky.append(frag);
+})();
+
 const PLANETS = ['Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'];
 // Simple illustrated planets: [base color, highlight, band color or null].
 const LOOKS = {
